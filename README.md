@@ -1,16 +1,6 @@
 # axosay
-    ., _--_ ,.       inspired by a fondness of cowsay  
- >>>;^-    -^;<<<    an animated axolotl / salamander 
- >>>{ .    . }<<<<   speaks to you through the terminal!
- >>>>\   o  /<<    
-      `- -         
-     ::-|~v:'      
-        )~)        
-      ,^(~ ^::     
-     .:`l (        
-         ))        
-         /         
-        (         
+ inspired by a fondness of cowsay, 
+ an animated axolotl / salamander speaks to you through the terminal!
         
 Requirements:
 
@@ -20,7 +10,12 @@ Requirements:
 
 Installation:
 
-To run just clone the repo and run like this:
-$> ./axosay -i "$(fortune)"
+ To run just clone the repo and run something like this:
+ 
+ $> ./axosay -i 'aka the mexican walking fish'
+ 
+ $> ./axosay -i "$(fortune)"
+ 
+ 
 
 
