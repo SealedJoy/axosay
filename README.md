@@ -1,6 +1,17 @@
 # axosay
-inspired by a fondness of cowsay - an animated axolotl / salamander speaks to you through the terminal!
-
+    ., _--_ ,.       inspired by a fondness of cowsay  
+ >>>;^-    -^;<<<    an animated axolotl / salamander 
+ >>>{ .    . }<<<<   speaks to you through the terminal!
+ >>>>\   o  /<<    
+      `- -         
+     ::-|~v:'      
+        )~)        
+      ,^(~ ^::     
+     .:`l (        
+         ))        
+         /         
+        (         
+        
 Requirements:
 
 - python3
@@ -11,3 +22,5 @@ Installation:
 
 To run just clone the repo and run like this:
 $> ./axosay -i "$(fortune)"
+
+
