@@ -5,9 +5,9 @@ Requirements:
 
 - python3
 
-- blessed ( pip3 install blessed --user )
+- pypi package: blessed ( pip3 install blessed --user )
 
-Install:
+Installation:
 
 To run just clone the repo and run like this:
 $> ./axosay -i "$(fortune)"
