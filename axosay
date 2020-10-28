@@ -9,9 +9,6 @@ from blessed import Terminal
 import argparse
 import textwrap
 term = Terminal()
-# Ideas: animated typing, animated axolotl, replace string in bubble
-# Todo: import axolottle images
-# wrap text to ? screensize - newline mark on axolotl.txt 
 
 # # # USER SETTINGS # # #
 bubble_char = '.'
