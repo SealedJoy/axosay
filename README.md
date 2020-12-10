@@ -1,6 +1,10 @@
 # axosay
  inspired by a fondness of cowsay, 
  an animated axolotl / salamander speaks to you through the terminal!
+
+ - multi-threaded ascii animation play back in the terminal from python
+ 
+ - support for adding other ascii art animation frames
         
 Requirements:
 
