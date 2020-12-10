@@ -6,15 +6,15 @@ Requirements:
 
 - python3
 
-- pypi package: blessed ( pip3 install blessed --user )
+- pypi package: blessed ( `pip3 install blessed --user` )
 
 Installation:
 
  To run just clone the repo and run something like this:
  
- $> ./axosay -i 'aka the mexican walking fish'
+ `$> ./axosay -i 'aka the mexican walking fish'`
  
- $> ./axosay -i "$(fortune)"
+ `$> ./axosay -i "$(fortune)"`
  
  
 
