@@ -2,23 +2,32 @@
  inspired by a fondness of cowsay, 
  an animated axolotl / salamander speaks to you through the terminal!
 
- - multi-threaded ascii animation play back in the terminal from python
+ - multi-threaded ascii animation play back in the terminal via python
  
- - support for adding other ascii art animation frames
+ - support for easily adding other ascii art animations
         
-Requirements:
+## Requirements:
 
-- python3
+- python 3
 
 - pypi package: blessed ( `pip3 install blessed --user` )
 
-Installation:
+## Installation:
 
- To run just clone the repo and run something like this:
+To run clone the repo:
+
+`git clone --depth=1 https://github.com/sealedjoy/axosay && cd axosay` 
+
+
+## Usage:
+
+run something like this:
  
- `$> ./axosay -i 'aka the mexican walking fish'`
+`./axosay -i 'aka the mexican walking fish'`
  
- `$> ./axosay -i "$(fortune)"`
+`./axosay -i "$(fortune)"`
+
+``q`` or ``ctrl + c`` to exit
  
  
 
