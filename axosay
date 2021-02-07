@@ -26,12 +26,13 @@ text_max_height = term.height - 2
 space_for_text = (term.width - art_max_width) - h_padding_int*2
 space_for_art = (term.width - space_for_text) - h_padding_int*2
 parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--speed", default='0.005', help="Speed at which text is printed to screen by axolotl")
 parser.add_argument("-t", "--timeout", default='', help="Automatically end after a number of seconds")
-parser.add_argument("-c", "--character", default='axolotl', help="Animated character to select")
+parser.add_argument("-c", "--character", default='axolotl', help="Animated character to select (default: axolotl)")
 parser.add_argument('strings', metavar='String', type=str, nargs='+', help='a space seperated, quoted string for each page')
 args = parser.parse_args()
 #print(args.strings)
-
+speed = float(args.speed)
 animation_folder_path = "resources/animated/{}/".format(args.character)
 alphabet = " abcdefghijklmnopqrstiuvwxyz"
 homedir = os.path.expanduser("~")
@@ -110,8 +111,10 @@ def get_file_paths():
 def line_erase(line):
     txt_erase = term.move_y(line) + ' '
     print(term.move_xy(0, line) + blank_space,end='',flush=True)
+
 def randomdelay():
-    delaytime = random.uniform(0.00001,0.005)
+    #delaytime = random.uniform(0.00001,speed)
+    delaytime = random.uniform(speed,speed)
     return delaytime
 
 def draw_speech_bubble():
@@ -161,7 +164,6 @@ def clear_bubble_and_text():
             print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
             sleep(0.001)
 
-
 def clear_text_in_bubble():
     for y in range(0, text_max_height):
         for x in range(0, space_for_text):
@@ -176,9 +178,6 @@ def render_text(text_wrapped):
                     print(term.move_xy(x + h_padding_int ,y + v_padding_int) + scroll_char)
                     if scroll_char == text_wrapped[y][x].lower(): #scroll till correct character
                         break
-                    #elif scroll_char == " ": #scroll till correct character
-                     #   break
-                    #sleep(0.0005)
                     sleep(randomdelay())
                 sleep(randomdelay())
                 print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
@@ -192,13 +191,9 @@ def render_text(text_wrapped):
                     print(term.move_xy(x + h_padding_int ,v_padding_int) + temp_char)
                     if temp_char == text_wrapped[0][x].lower(): #scroll till correct character
                         break
-                    sleep(0.001)
+                    sleep(randomdelay())
                 print(term.move_xy(x + h_padding_int ,v_padding_int) + text_wrapped[0][x],end='',flush=True)
-        
 
-
-
-        #print(term.home)
 def render_animation(animation):
     while True:
         for frame_number in range(0,len(animation)):
@@ -214,7 +209,6 @@ def start_animation_thread(animation):
     animate.daemon = True
     animate.start()
 
-
     ## TODO: ADD THREAD FOR TEXT RENDER PROCESS
 
 def redraw_for_new_speech(text_padded): 
@@ -223,21 +217,22 @@ def redraw_for_new_speech(text_padded):
     render_text(text_padded)
 
 def next_page(page):
-    text_wrapped = wrap_text(term.strip_seqs(args.strings[page].strip()))
     clear_bubble_and_text()
+    text_wrapped = wrap_text(term.strip_seqs(args.strings[page].strip()))
     text_padded = pad_text(text_wrapped)
     redraw_for_new_speech(text_padded)
 
 def main():
     animation_file_paths = get_file_paths()
     animation = load_frames(animation_file_paths)
-    #init list
-    text_wrapped = []
+    text_wrapped = [] #init list
     if args.strings:
         text_wrapped = wrap_text(term.strip_seqs(args.strings[0]))
         text_padded = pad_text(text_wrapped)
     else:
         text_padded = ['']
+        print("Nothing to say!")
+        exit()
     text_rendered = False
     with term.cbreak(), term.hidden_cursor(), term.fullscreen():  
         start_animation_thread(animation)
@@ -247,11 +242,7 @@ def main():
             text_rendered = True
         while True:
             if args.timeout:
-                t = 0
-                print("args.timeout == " + str(args.timeout))
-                for t in args.timeout:
-                    t = t + 1
-                    sleep(1)
+                sleep(float(args.timeout))
                 print(term.exit_fullscreen())
                 exit()
             else:
@@ -286,18 +277,15 @@ def main():
                         elif page == (len(args.strings) - 1):
                             line_erase(text_max_height + 1)
                             print(term.move_xy(0,text_max_height + 1) + "Reached end, 'r' to restart or 'q' to quit",end='',flush=True)
+                            page = page + 1
                             sleep(0.5)
                         else:
                             page = page + 1
                             next_page(page)
-
-
-                        
                     elif val == 'q':
                         print(f'bye!{term.normal}')
                         print(term.exit_fullscreen())
                         exit()
-
 
 if __name__ == "__main__":
     try:
