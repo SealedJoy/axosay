@@ -4,6 +4,7 @@ import random
 import threading
 import sys
 import os
+import re
 import subprocess
 from blessed import Terminal
 import argparse
@@ -37,7 +38,8 @@ text_rendered = False #flag
 text_end_line = 0
 text_wrapped_continued = []
 single_line_end = ''
-wrapper = textwrap.TextWrapper(width=space_for_text, max_lines=text_max_height-v_padding_int)
+#wrapper = textwrap.TextWrapper(width=space_for_text, max_lines=text_max_height-v_padding_int, subsequent_indent=' ')
+#wrapper = textwrap.TextWrapper(width=space_for_text, max_lines=text_max_height-v_padding_int)
 
 blank_text_line = ''
 for space in range(0,space_for_text):
@@ -71,7 +73,9 @@ def load_frames(animation_file_paths):
 
 def wrap_text(text):
     #after x lines append to second obj
-    wrapped_lines = wrapper.wrap(text)
+    cleaned_text = text
+    #cleaned_text = re.sub('\s+',' ',text) 
+    wrapped_lines = textwrap.wrap(cleaned_text,width=space_for_text -1, max_lines=text_max_height-v_padding_int, initial_indent='',subsequent_indent='', replace_whitespace=True, expand_tabs=True)
     return wrapped_lines
 
 def pad_text(text_wrapped):
@@ -85,11 +89,14 @@ def pad_text(text_wrapped):
         single_line_end = len(text_wrapped[0])
         return text_wrapped
     for line in range(0,len(text_wrapped)):
-        text_wrapped[line] = text_wrapped[line] + ' '
+        #text_wrapped[line] = text_wrapped[line].strip() 
         while len(text_wrapped[line]) < space_for_text:
-            text_wrapped[line] = text_wrapped[line] + " "
+            text_wrapped[line] = text_wrapped[line] + " " #pad out the empty space
             text_end_line = line
     while len(text_wrapped) > text_max_height:
+        # insert as extra page here! pseudo code below
+        #page = page + 1
+        #args.strings[page -1]insert(text_wrapped.pop(len(text_wrapped))
         text_wrapped_continued += text_wrapped.pop(len(text_wrapped))
     while len(text_wrapped) < text_max_height:
         text_wrapped.append(blank_text_line)
@@ -103,7 +110,7 @@ def line_erase(line):
     txt_erase = term.move_y(line) + ' '
     print(term.move_xy(0, line) + blank_space,end='',flush=True)
 def randomdelay():
-    delaytime = random.uniform(0.001,0.1)
+    delaytime = random.uniform(0.001,0.01)
     return delaytime
 
 def draw_speech_bubble():
@@ -127,7 +134,7 @@ def draw_speech_bubble():
         for y in range(1,text_end_line + 2):
             print(term.move_xy(single_line_end + 4,y) + bubble_char,end='',flush=True)
             #bottom and top horizontal
-        for x in range(single_line_end + 1, 1, -1):
+        for x in range(single_line_end + 1, 0, -1):
             print(term.move_xy(x,0) + bubble_char,end='',flush=True)
             print(term.move_xy(x,text_end_line + 2) + bubble_char,end='',flush=True)
             sleep(0.01)
@@ -141,17 +148,17 @@ def clear_bubble_and_text():
     for y in range(1,text_end_line + 2):
         print(term.move_xy(space_for_text + 2,y) + " ",end='',flush=True)
         #bottom and top horizontal
-    for x in range(space_for_text + 1, 1, -1):
+    for x in range(1,space_for_text + 2):
         print(term.move_xy(x,0) + " ",end='',flush=True)
         print(term.move_xy(x,text_end_line + 2) + " ",end='',flush=True)
         sleep(0.01)
         #left side vertical
     for y in range(1, text_end_line + 2):
         print(term.move_xy(0,y) + " ",end='',flush=True)
-    for y in range(0, text_max_height):
+    for y in range(0, text_end_line + 2): #text_max_height):
         for x in range(0, space_for_text):
             print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
-            sleep(0.004)
+            sleep(0.003)
 
 
 def clear_text_in_bubble():
@@ -168,10 +175,10 @@ def render_text(text_wrapped):
                     print(term.move_xy(x + h_padding_int ,y + v_padding_int) + scroll_char)
                     if scroll_char == text_wrapped[y][x].lower(): #scroll till correct character
                         break
-                    sleep(0.002)
+                    sleep(0.001)
+                sleep(randomdelay())
                 print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
                 print(term.move_xy(x + h_padding_int ,y + v_padding_int) + text_wrapped[y][x],end='',flush=True)
-               # sleep(randomdelay())
                 if text_wrapped[y] == blank_text_line:
                     break
     else:
@@ -181,7 +188,7 @@ def render_text(text_wrapped):
                     print(term.move_xy(x + h_padding_int ,v_padding_int) + temp_char)
                     if temp_char == text_wrapped[0][x].lower(): #scroll till correct character
                         break
-                    sleep(0.002)
+                    sleep(0.001)
                 print(term.move_xy(x + h_padding_int ,v_padding_int) + text_wrapped[0][x],end='',flush=True)
         
 
@@ -203,15 +210,18 @@ def start_animation_thread(animation):
     animate.daemon = True
     animate.start()
 
+
+    ## TODO: ADD THREAD FOR TEXT RENDER PROCESS
+
 def redraw_for_new_speech(text_padded): 
     text_rendered = False
     draw_speech_bubble()
     render_text(text_padded)
 
 def next_page(page):
-    text_wrapped = wrap_text(term.strip_seqs(args.strings[page]))
-    text_padded = pad_text(text_wrapped)
+    text_wrapped = wrap_text(term.strip_seqs(args.strings[page].strip()))
     clear_bubble_and_text()
+    text_padded = pad_text(text_wrapped)
     redraw_for_new_speech(text_padded)
 
 def main():
@@ -234,6 +244,7 @@ def main():
         while True:
             if args.timeout:
                 t = 0
+                print("args.timeout == " + str(args.timeout))
                 for t in args.timeout:
                     t = t + 1
                     sleep(1)
@@ -245,8 +256,12 @@ def main():
             with term.cbreak():
                 val = ''
                 while val.lower() != 'q':
-                    line_erase(text_max_height + 1)
-                    print(term.move_xy(0,text_max_height + 1) + "'n' next page, 'r' restart, 'q' quit.",end='',flush=True)
+                    if page == len(args.strings)-1: # if on last page of text
+                        line_erase(text_max_height + 1)
+                        print(term.move_xy(0,text_max_height + 1) + "'r' restart, 'q' quit.",end='',flush=True)
+                    else:
+                        line_erase(text_max_height + 1)
+                        print(term.move_xy(0,text_max_height + 1) + "'n' next page, 'r' restart, 'q' quit.",end='',flush=True)
                     val = term.inkey(timeout=5)
                     if not val:
                        continue
@@ -260,13 +275,14 @@ def main():
                     elif val == 'n':
                         line_erase(text_max_height + 1)
                         print(term.move_xy(0,text_max_height + 1) + "loading next page...",end='',flush=True)
-
                         if page == len(args.strings):
                             line_erase(text_max_height + 1)
                             print(term.move_xy(0,text_max_height + 1) + "Reached end, 'r' to restart or 'q' to quit",end='',flush=True)
+                            sleep(0.5)
                         elif page == (len(args.strings) - 1):
                             line_erase(text_max_height + 1)
                             print(term.move_xy(0,text_max_height + 1) + "Reached end, 'r' to restart or 'q' to quit",end='',flush=True)
+                            sleep(0.5)
                         else:
                             page = page + 1
                             next_page(page)
