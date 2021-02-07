@@ -230,6 +230,7 @@ def main():
 
 if __name__ == "__main__":
     try:
+        print(term.enter_fullscreen())
         check_term()
         main()
     except Exception as e:
@@ -237,5 +238,6 @@ if __name__ == "__main__":
     finally:
         #animate.raise_exception()
        # animate.join()
+        print(term.exit_fullscreen())
         exit()
             
