@@ -26,7 +26,7 @@ text_max_height = term.height - 2
 space_for_text = (term.width - art_max_width) - h_padding_int*2
 space_for_art = (term.width - space_for_text) - h_padding_int*2
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--speed", default='0.005', help="Speed at which text is printed to screen by axolotl")
+parser.add_argument("-s", "--speed", default='0.005', help="Speed at which text is printed to screen by axolotl. (Default: 0.005")
 parser.add_argument("-t", "--timeout", default='', help="Automatically end after a number of seconds")
 parser.add_argument("-c", "--character", default='axolotl', help="Animated character to select (default: axolotl)")
 parser.add_argument('strings', metavar='String', type=str, nargs='+', help='a space seperated, quoted string for each page')
@@ -170,6 +170,7 @@ def clear_text_in_bubble():
             print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
 
 def render_text(text_wrapped):
+   # global single_line_end
     if single_line_end == '':
         for y in range(0, text_max_height):
             for x in range(0, space_for_text):
@@ -183,6 +184,7 @@ def render_text(text_wrapped):
                 print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
                 print(term.move_xy(x + h_padding_int ,y + v_padding_int) + text_wrapped[y][x],end='',flush=True)
                 if text_wrapped[y] == blank_text_line:
+                    text_wrapped[y] = " "
                     break
     else:
         for x in range(0, single_line_end):
@@ -215,6 +217,7 @@ def redraw_for_new_speech(text_padded):
     text_rendered = False
     draw_speech_bubble()
     render_text(text_padded)
+    text_rendered = True
 
 def next_page(page):
     clear_bubble_and_text()
