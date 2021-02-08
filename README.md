@@ -18,12 +18,12 @@ To run clone the repo:
 
 `git clone --depth=1 https://github.com/sealedjoy/axosay && cd axosay` 
 
-
 ## Usage:
 ```
 usage: axosay [-h] [-s SPEED] [-t TIMEOUT] [-c CHARACTER] String [String ...]
 positional arguments:
   String                a space seperated, quoted string for each page
+  
 optional arguments:
   -h, --help            show this help message and exit
   
@@ -38,21 +38,20 @@ optional arguments:
 ```
 ## Examples:
 
-Run something like this:
- 
+Run something like this:  
 `./axosay 'Not a lizard'`
 
-Print stdout of command:
-
+Print stdout of command:  
 `./axosay "$(fortune)"`
 
-Multiple pages of speech:
- 
-`./axosay 'Welcome to axosay!' 'You can display multiple pages by giving axosay multiple positional args, each page as a space seperated string argument `
+Multiple pages of speech:  
+`./axosay 'Welcome to axosay!' 'You can display multiple pages...' 'by giving axosay multiple positional args, each page as a space seperated string argument `
 
-`r` restart `n` next
+### Keyboard:
 
-``q`` or ``ctrl + c`` to exit
+`r` restart  
+`n` next  
+`q` quit  
  
  
 
