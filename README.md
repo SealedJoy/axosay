@@ -20,7 +20,7 @@ To run clone the repo:
 
 
 ## Usage:
-
+```
 `usage: axosay [-h] [-s SPEED] [-t TIMEOUT] [-c CHARACTER] String [String ...]`
 
 `positional arguments:`
@@ -42,7 +42,7 @@ To run clone the repo:
 `  -c CHARACTER, --character CHARACTER`
 
 `                        Animated character to select (default: axolotl)`
-                        
+```
 ## Examples:
 
 Run something like this:
