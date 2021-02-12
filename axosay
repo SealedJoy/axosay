@@ -4,11 +4,9 @@ import random
 import threading
 import sys
 import os
-import re
-import subprocess
-from blessed import Terminal
 import argparse
 import textwrap
+from blessed import Terminal
 term = Terminal()
 
 # # # USER SETTINGS # # #
@@ -26,22 +24,24 @@ text_max_height = term.height - 2
 space_for_text = (term.width - art_max_width) - h_padding_int*2
 space_for_art = (term.width - space_for_text) - h_padding_int*2
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--speed", default='0.005', help="Speed at which text is printed to screen by axolotl. (Default: 0.005")
-parser.add_argument("-t", "--timeout", default='', help="Automatically end after a number of seconds")
-parser.add_argument("-c", "--character", default='axolotl', help="Animated character to select (default: axolotl)")
+parser.add_argument("-s", "--speed",type=float, default='0.005', help="Speed at which text is printed to screen by axolotl. (Default: 0.005)")
+parser.add_argument("-f", "--framerate",type=float, default='0.17', help="Show a frame every ... seconds (Default: 0.17)")
+parser.add_argument("-t", "--timeout", default='', help="Automatically progress pages after a number of seconds till end")
+parser.add_argument("-a", "--ascii",type=str, default='axolotl', help="Ascii character folder to select (default: axolotl)")
+parser.add_argument("-c", "--command",type=str, default='', help="On-going command to display output: (eg: fortune)")
+parser.add_argument("-r", "--repeat", type=float,default='5', help="On-going command repeat in seconds: (default: 5)")
 parser.add_argument('strings', metavar='String', type=str, nargs='+', help='a space seperated, quoted string for each page')
 args = parser.parse_args()
-#print(args.strings)
 speed = float(args.speed)
-animation_folder_path = "resources/animated/{}/".format(args.character)
-alphabet = " abcdefghijklmnopqrstiuvwxyz"
+animation_folder_path = "resources/animated/{}/".format(args.ascii)
+alphabet = " abcdefghijklmnopqrstiuvwxyz "
 homedir = os.path.expanduser("~")
-text_rendered = False #flag 
-text_end_line = 0
-text_wrapped_continued = []
-single_line_end = ''
-#wrapper = textwrap.TextWrapper(width=space_for_text, max_lines=text_max_height-v_padding_int, subsequent_indent=' ')
-#wrapper = textwrap.TextWrapper(width=space_for_text, max_lines=text_max_height-v_padding_int)
+
+#print("args.strings=",)
+# Remove newlines between text
+#print(args.strings[0].replace("\n", " "))
+#print(args.strings)
+#sleep(1)
 
 blank_text_line = ''
 for space in range(0,space_for_text):
@@ -57,9 +57,10 @@ for space in range(v_padding_int):
     v_padding = v_padding + ' '
 
 def check_term():
-    if term.height < art_max_height:
-        print("Term size needs to be at least " + str(art_max_height) + " by " + str(art_max_width + 5))
-        exit()
+    if term.height < art_max_height + 2:
+        print("Axosay: Term size needs to be at least " + str(art_max_width +5) + " by " + str(art_max_height + 2))
+        print("Current size is " + str(term.width) + " by " + str(term.height))
+        sys.exit()
 
 def load_art(ascii_path):
     with open(ascii_path) as file:
@@ -69,57 +70,49 @@ def load_art(ascii_path):
 def load_frames(animation_file_paths):
     animation = []
     for path in animation_file_paths:
-            file = load_art(path)
-            animation.append(file)
+        file = load_art(path)
+        animation.append(file)
     return animation
 
-def wrap_text(text):
-    #after x lines append to second obj
-    #cleaned_text = text
-    cleaned_text = re.sub('\s+',' ',text) 
-    wrapped_lines = textwrap.wrap(cleaned_text,width=space_for_text -1, max_lines=text_max_height-v_padding_int, initial_indent='',subsequent_indent='', replace_whitespace=True, expand_tabs=False)
-    return wrapped_lines
-
-def pad_text(text_wrapped):
-    global text_end_line
-    global text_wrapped_p2
-    global single_line_end
-    text_wrapped_p2 = []
- #   text_wrapped.insert(0, blank_text_line)
-  #  text_wrapped.append(v_padding)
-    if len(text_wrapped) == 1:
-        single_line_end = len(text_wrapped[0])
-        return text_wrapped
-    for line in range(0,len(text_wrapped)):
-        #text_wrapped[line] = text_wrapped[line].strip() 
-        while len(text_wrapped[line]) < space_for_text:
-            text_wrapped[line] = text_wrapped[line] + " " #pad out the empty space
-            text_end_line = line
-    while len(text_wrapped) > text_max_height:
-        # insert as extra page here! pseudo code below
-        #page = page + 1
-        #args.strings[page -1]insert(text_wrapped.pop(len(text_wrapped))
-        text_wrapped_continued += text_wrapped.pop(len(text_wrapped))
-    while len(text_wrapped) < text_max_height:
-        text_wrapped.append(blank_text_line)
-    return text_wrapped
+# Handle all text input and return a list (pages) of wrapped lists (each line) eg wrapped_text[page][line]
+def wrap_text(user_input): #recieve args.strings list 
+    cleaned_strings=[]
+    wrapped_lines=[]
+    page_num = 0
+    for dirty_string in user_input: 
+        cleaned_strings.append(dirty_string.replace("\n", " ").replace("\t", "").replace("  ", " ")) 
+    for string_num in range(0,len(cleaned_strings)): #pad all text on first load
+        wrapped_lines.append(textwrap.wrap(cleaned_strings[string_num],width=space_for_text -1, initial_indent='',subsequent_indent='', replace_whitespace=True, expand_tabs=True, tabsize=1))
+    line_num = 0
+    page_num = 0
+    while page_num in range(0,len(wrapped_lines)): #check each page
+        page_continued=[]
+        line_num = 0
+        while len(wrapped_lines[page_num]) >= text_max_height: # if too many lines, insert a new page
+                page_continued.insert(0,wrapped_lines[page_num].pop())
+        if page_continued:
+                temp_page_num = page_num + 1
+                wrapped_lines.insert(temp_page_num, page_continued)
+        else: # if page_continued empty continue to next page 
+            page_num = page_num +1
+    return wrapped_lines 
 
 def get_file_paths():
     animation_file_paths = [os.path.join(r,file) for r,d,f in os.walk(animation_folder_path) for file in f]
     return animation_file_paths
     
 def line_erase(line):
-    txt_erase = term.move_y(line) + ' '
+    #txt_erase = term.move_y(line) + ' '
     print(term.move_xy(0, line) + blank_space,end='',flush=True)
 
 def randomdelay():
     #delaytime = random.uniform(0.00001,speed)
-    delaytime = random.uniform(speed,speed)
+    delaytime = random.uniform(speed/2,speed)
     return delaytime
 
-def draw_speech_bubble():
+def draw_speech_bubble(page,text_wrapped):
     # speech arrows
-    if single_line_end == '': #if textwrap not single line
+    if len(text_wrapped[page]) > '1': #if textwrap not single line
         print(term.move_xy(space_for_text + 3,animation_mouth_line) + "--",end='',flush=True)
             #right side vertical
         for y in range(1,text_end_line + 2):
@@ -146,55 +139,31 @@ def draw_speech_bubble():
         for y in range(1, text_end_line + 2):
             print(term.move_xy(0,y) + bubble_char,end='',flush=True)
  
-def clear_bubble_and_text():
+def clear_bubble_and_text(page,text_wrapped):
     print(term.move_xy(space_for_text + 3,animation_mouth_line) + "  ",end='',flush=True)
-    #right side vertical
-    for y in range(1,text_end_line + 2):
-        print(term.move_xy(space_for_text + 2,y) + " ",end='',flush=True)
-        #bottom and top horizontal
-    for x in range(1,space_for_text + 2):
-        print(term.move_xy(x,0) + " ",end='',flush=True)
-        print(term.move_xy(x,text_end_line + 2) + " ",end='',flush=True)
-        sleep(0.005)
-        #left side vertical
-    for y in range(1, text_end_line + 2):
-        print(term.move_xy(0,y) + " ",end='',flush=True)
-    for y in range(0, text_end_line + 2): #text_max_height):
-        for x in range(0, space_for_text):
-            print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
-            sleep(0.001)
+    for y in range(0,len(text_wrapped[page]) + 3):
+        for x in range(0,space_for_text + 2):
+            print(term.move_xy(x,y) + " ",end='',flush=True)
+            sleep(speed/2)
+ 
 
 def clear_text_in_bubble():
-    for y in range(0, text_max_height):
-        for x in range(0, space_for_text):
+    for y in range(text_max_height,0,-1):
+        for x in range(space_for_text,0,-1):
             print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
 
-def render_text(text_wrapped):
-   # global single_line_end
-    if single_line_end == '':
-        for y in range(0, text_max_height):
-            for x in range(0, space_for_text):
-                #first print a bunch of random chars as if scrolling
-                for scroll_char in alphabet:
-                    print(term.move_xy(x + h_padding_int ,y + v_padding_int) + scroll_char)
-                    if scroll_char == text_wrapped[y][x].lower(): #scroll till correct character
-                        break
-                    sleep(randomdelay())
-                sleep(randomdelay())
-                print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
-                print(term.move_xy(x + h_padding_int ,y + v_padding_int) + text_wrapped[y][x],end='',flush=True)
-                if text_wrapped[y] == blank_text_line:
-                    text_wrapped[y] = " "
+def render_text(page, text_wrapped):
+    for y in range(0, len(text_wrapped[page])): #text_max_height):
+        for x in range(0, len(text_wrapped[page][y])): #space_for_text):
+            #first print a bunch of random chars as if scrolling
+            for scroll_char in alphabet:
+                print(term.move_xy(x + h_padding_int ,y + v_padding_int) + scroll_char)
+                if scroll_char == text_wrapped[page][y][x].lower(): #scroll till correct character
                     break
-    else:
-        for x in range(0, single_line_end):
-                #first print a bunch of random chars as if scrolling
-                for temp_char in alphabet:
-                    print(term.move_xy(x + h_padding_int ,v_padding_int) + temp_char)
-                    if temp_char == text_wrapped[0][x].lower(): #scroll till correct character
-                        break
-                    sleep(randomdelay())
-                print(term.move_xy(x + h_padding_int ,v_padding_int) + text_wrapped[0][x],end='',flush=True)
+                sleep(randomdelay())
+            sleep(randomdelay())
+            print(term.move_xy(x + h_padding_int ,y + v_padding_int) + ' ',end='',flush=True)
+            print(term.move_xy(x + h_padding_int ,y + v_padding_int) + text_wrapped[page][y][x],end='',flush=True)
 
 def render_animation(animation):
     while True:
@@ -203,103 +172,113 @@ def render_animation(animation):
                 for x in range(0, space_for_art):
                     targetx = x + space_for_text + 5
                     print(term.move_xy(targetx,y) + animation[frame_number][y][x])
-            sleep(frame_rate)
+            sleep(args.framerate)
 
 def start_animation_thread(animation):
-    global animate
     animate = threading.Thread(target=render_animation, args=(animation,))
     animate.daemon = True
     animate.start()
 
-    ## TODO: ADD THREAD FOR TEXT RENDER PROCESS
+def start_animate_text_thread(page,text_wrapped):
+    animate_text = threading.Thread(target=render_text, args=(page,text_wrapped, ))
+    animate_text.daemon = False
+    animate_text.start()
+    return animate_text
 
-def redraw_for_new_speech(text_padded): 
-    text_rendered = False
-    draw_speech_bubble()
-    render_text(text_padded)
-    text_rendered = True
+def prev_page(page,text_wrapped): 
+    clear_bubble_and_text(page+1,text_wrapped) #clear the previous page
+    #draw_speech_bubble()
+    start_animate_text_thread(page,text_wrapped) #render the current page
 
-def next_page(page):
-    clear_bubble_and_text()
-    text_wrapped = wrap_text(term.strip_seqs(args.strings[page].strip()))
-    text_padded = pad_text(text_wrapped)
-    redraw_for_new_speech(text_padded)
+ 
+
+def next_page(page,text_wrapped): 
+    clear_bubble_and_text(page-1,text_wrapped) #clear the previous page
+    #draw_speech_bubble()
+    start_animate_text_thread(page,text_wrapped) #render the current page
+
+def run_command(command):
+    command_raw = subprocess.run([command], stdout=PIPE, stderr=PIPE, capture_output=True, shell=False, timeout=60, universal_newlines=True)
+    print(str(command_raw))
+    return command_raw
 
 def main():
     animation_file_paths = get_file_paths()
     animation = load_frames(animation_file_paths)
-    text_wrapped = [] #init list
-    if args.strings:
-        text_wrapped = wrap_text(term.strip_seqs(args.strings[0]))
-        text_padded = pad_text(text_wrapped)
+    selected_page = 0
+    if args.command:
+        user_input = run_command(args.command)
     else:
-        text_padded = ['']
-        print("Nothing to say!")
-        exit()
-    text_rendered = False
-    with term.cbreak(), term.hidden_cursor(), term.fullscreen():  
-        start_animation_thread(animation)
-        if not text_rendered:
-            draw_speech_bubble()
-            render_text(text_padded)
-            text_rendered = True
-        while True:
+        user_input = args.strings
+    text_wrapped = wrap_text(user_input)                            # fetch user inputed strings (all formatted for screensize)
+    with term.cbreak(), term.hidden_cursor(), term.fullscreen():    # hide cursor and go fullscreen! 
+        start_animation_thread(animation)                           # start the character animation thread
+        next_page(selected_page,text_wrapped)
+        
+        while True: # enter main loop #dont lag it up
             if args.timeout:
+                for num_page in range(1,len(text_wrapped)):
+                    sleep(float(args.timeout))
+                    next_page(num_page, text_wrapped)
+                    # WAIT for PREV THREAD FINISHES
                 sleep(float(args.timeout))
-                print(term.exit_fullscreen())
-                exit()
-            else:
                 sleep(1)
-            page = 0
+                print(term.exit_fullscreen())
+                sys.exit()
+            if args.command:
+                while True:
+                    user_input = run_command(args.command)
+                    text_wrapped = wrap_text(user_input)
+                    for page_num in range(len(text_wrapped)):
+                        start_animate_text_thread(page_num, text_wrapped)
+                        sleep(2)
+                    sleep(args.repeat)
             with term.cbreak():
                 val = ''
                 while val.lower() != 'q':
-                    if page == len(args.strings)-1: # if on last page of text
+                    if selected_page == len(text_wrapped)-1: # if on last page of text
                         line_erase(text_max_height + 1)
                         print(term.move_xy(0,text_max_height + 1) + "'r' restart, 'q' quit.",end='',flush=True)
                     else:
                         line_erase(text_max_height + 1)
                         print(term.move_xy(0,text_max_height + 1) + "'n' next page, 'r' restart, 'q' quit.",end='',flush=True)
                     val = term.inkey(timeout=5)
-                    if not val:
-                       continue
-                   # elif val.is_sequence:
-                    #    print("got sequence: {0}.".format((str(val), val.name, val.code)))
-                    elif val == 'r':
+                    if val == 'r':
                         line_erase(text_max_height + 1)
                         print(term.move_xy(0,text_max_height + 1) + "Restarting from 1st page...",end='',flush=True)
-                        page = 0
-                        next_page(page)
+                        selected_page = 0
+                        next_page(selected_page,text_wrapped)
                     elif val == 'n':
                         line_erase(text_max_height + 1)
                         print(term.move_xy(0,text_max_height + 1) + "loading next page...",end='',flush=True)
-                        if page == len(args.strings):
+                        if selected_page == len(text_wrapped):
                             line_erase(text_max_height + 1)
-                            print(term.move_xy(0,text_max_height + 1) + "Reached end, 'r' to restart or 'q' to quit",end='',flush=True)
+                            print(term.move_xy(0,text_max_height + 1) + "[n]ext [p]rev [r]estart [q]uit ",end='',flush=True)
                             sleep(0.5)
-                        elif page == (len(args.strings) - 1):
+                        elif selected_page == (len(text_wrapped) - 1):
                             line_erase(text_max_height + 1)
                             print(term.move_xy(0,text_max_height + 1) + "Reached end, 'r' to restart or 'q' to quit",end='',flush=True)
-                            page = page + 1
+                            selected_page = selected_page + 1
                             sleep(0.5)
                         else:
-                            page = page + 1
-                            next_page(page)
+                            selected_page = selected_page + 1
+                            next_page(selected_page, text_wrapped)
+                    elif val == 'b':
+                        selected_page = selected_page - 1
+                        prev_page(selected_page, text_wrapped)
                     elif val == 'q':
                         print(f'bye!{term.normal}')
                         print(term.exit_fullscreen())
-                        exit()
+                        sys.exit()
 
 if __name__ == "__main__":
     try:
-        #print(term.enter_fullscreen())
         check_term()
         main()
     except Exception as e:
         print("Oops!", e.__class__, "occurred.")
     finally:
         #animate.raise_exception()
-       # animate.join()
         print(term.exit_fullscreen())
-        exit()
+        sys.exit()
             
