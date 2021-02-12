@@ -2,6 +2,7 @@
 from time import sleep
 import random
 import threading
+import signal
 import sys
 import os
 import argparse
@@ -56,11 +57,20 @@ v_padding = ''
 for space in range(v_padding_int):
     v_padding = v_padding + ' '
 
+def on_resize():
+    space_for_text = (term.width - art_max_width) - h_padding_int*2
+    space_for_art = (term.width - space_for_text) - h_padding_int*2
+    print(term.clear)
+    #kill threads here
+    #start_animation_thread(page,text_wrapped)
+    #start_animate_text_thread(page,text_wrapped)
+
 def check_term():
     if term.height < art_max_height + 2:
         print("Axosay: Term size needs to be at least " + str(art_max_width +5) + " by " + str(art_max_height + 2))
         print("Current size is " + str(term.width) + " by " + str(term.height))
         sys.exit()
+
 
 def load_art(ascii_path):
     with open(ascii_path) as file:
@@ -198,11 +208,13 @@ def next_page(page,text_wrapped):
     start_animate_text_thread(page,text_wrapped) #render the current page
 
 def run_command(command):
-    command_raw = subprocess.run([command], stdout=PIPE, stderr=PIPE, capture_output=True, shell=False, timeout=60, universal_newlines=True)
-    print(str(command_raw))
+    command_raw = subprocess.run(["echo testing"], capture_output=True, shell=False, check=True, timeout=60, universal_newlines=True)
+    print(term.clear + str(command_raw.stdout))
+    sleep(1)
     return command_raw
 
 def main():
+    signal.signal(signal.SIGWINCH, on_resize)
     animation_file_paths = get_file_paths()
     animation = load_frames(animation_file_paths)
     selected_page = 0
@@ -238,34 +250,39 @@ def main():
                 while val.lower() != 'q':
                     if selected_page == len(text_wrapped)-1: # if on last page of text
                         line_erase(text_max_height + 1)
-                        print(term.move_xy(0,text_max_height + 1) + "'r' restart, 'q' quit.",end='',flush=True)
+                        print(term.move_xy(0,text_max_height + 1) + "[p]rev [r]estart [q]uit",end='',flush=True)
+                    elif selected_page == 0: # if on first page of text
+                        line_erase(text_max_height + 1)
+                        print(term.move_xy(0,text_max_height + 1) + "[n]ext [r]estart [q]uit",end='',flush=True)
                     else:
                         line_erase(text_max_height + 1)
-                        print(term.move_xy(0,text_max_height + 1) + "'n' next page, 'r' restart, 'q' quit.",end='',flush=True)
+                        print(term.move_xy(0,text_max_height + 1) + "[n]ext [p]rev [r]estart [q]uit",end='',flush=True)
                     val = term.inkey(timeout=5)
                     if val == 'r':
                         line_erase(text_max_height + 1)
-                        print(term.move_xy(0,text_max_height + 1) + "Restarting from 1st page...",end='',flush=True)
+                        #print(term.move_xy(0,text_max_height + 1) + "restarting...",end='',flush=True)
+                        #sleep(0.5)
                         selected_page = 0
                         next_page(selected_page,text_wrapped)
                     elif val == 'n':
                         line_erase(text_max_height + 1)
-                        print(term.move_xy(0,text_max_height + 1) + "loading next page...",end='',flush=True)
-                        if selected_page == len(text_wrapped):
+                        #print(term.move_xy(0,text_max_height + 1) + "loading...",end='',flush=True)
+                        #sleep(0.5)
+                        if selected_page == len(text_wrapped)-1:
                             line_erase(text_max_height + 1)
-                            print(term.move_xy(0,text_max_height + 1) + "[n]ext [p]rev [r]estart [q]uit ",end='',flush=True)
-                            sleep(0.5)
-                        elif selected_page == (len(text_wrapped) - 1):
-                            line_erase(text_max_height + 1)
-                            print(term.move_xy(0,text_max_height + 1) + "Reached end, 'r' to restart or 'q' to quit",end='',flush=True)
-                            selected_page = selected_page + 1
+                            print(term.move_xy(0,text_max_height + 1) + "At End..",end='',flush=True)
                             sleep(0.5)
                         else:
                             selected_page = selected_page + 1
                             next_page(selected_page, text_wrapped)
-                    elif val == 'b':
-                        selected_page = selected_page - 1
-                        prev_page(selected_page, text_wrapped)
+                    elif val == 'p':
+                        if selected_page == 0:
+                            line_erase(text_max_height + 1)
+                            print(term.move_xy(0,text_max_height + 1) + "At Beginning...",end='',flush=True)
+                            sleep(0.5)
+                        else:
+                            selected_page = selected_page - 1
+                            prev_page(selected_page, text_wrapped)
                     elif val == 'q':
                         print(f'bye!{term.normal}')
                         print(term.exit_fullscreen())
@@ -275,8 +292,12 @@ if __name__ == "__main__":
     try:
         check_term()
         main()
-    except Exception as e:
-        print("Oops!", e.__class__, "occurred.")
+    #except Exception as e:
+     #   print("Oops!", e.__class__, "occurred.")
+    except (KeyboardInterrupt, SystemExit):
+        cleanup_stop_thread()
+        print(term.exit_fullscreen())
+        sys.exit()
     finally:
         #animate.raise_exception()
         print(term.exit_fullscreen())
