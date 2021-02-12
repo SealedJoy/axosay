@@ -2,6 +2,7 @@
 from time import sleep
 import random
 import threading
+import subprocess
 import signal
 import sys
 import os
@@ -27,11 +28,12 @@ space_for_art = (term.width - space_for_text) - h_padding_int*2
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--speed",type=float, default='0.005', help="Speed at which text is printed to screen by axolotl. (Default: 0.005)")
 parser.add_argument("-f", "--framerate",type=float, default='0.17', help="Show a frame every ... seconds (Default: 0.17)")
-parser.add_argument("-t", "--timeout", default='', help="Automatically progress pages after a number of seconds till end")
+parser.add_argument("-t", "--timeout", help="Automatically progress pages after a number of seconds till end (default: 2)")
 parser.add_argument("-a", "--ascii",type=str, default='axolotl', help="Ascii character folder to select (default: axolotl)")
 parser.add_argument("-c", "--command",type=str, default='', help="On-going command to display output: (eg: fortune)")
 parser.add_argument("-r", "--repeat", type=float,default='5', help="On-going command repeat in seconds: (default: 5)")
-parser.add_argument('strings', metavar='String', type=str, nargs='+', help='a space seperated, quoted string for each page')
+parser.add_argument("-l", "--loop", type=bool,default=False, help="restart instead of ending(default: False)")
+parser.add_argument('input', metavar='"string"', type=str, nargs='+', help='a space seperated, quoted string for each page')
 args = parser.parse_args()
 speed = float(args.speed)
 animation_folder_path = "resources/animated/{}/".format(args.ascii)
@@ -191,25 +193,29 @@ def start_animation_thread(animation):
 
 def start_animate_text_thread(page,text_wrapped):
     animate_text = threading.Thread(target=render_text, args=(page,text_wrapped, ))
-    animate_text.daemon = False
+    animate_text.daemon = True
     animate_text.start()
     return animate_text
 
 def prev_page(page,text_wrapped): 
-    clear_bubble_and_text(page+1,text_wrapped) #clear the previous page
+    clear_bubble_and_text(page+1,text_wrapped) #clear the last page
     #draw_speech_bubble()
     start_animate_text_thread(page,text_wrapped) #render the current page
-
- 
 
 def next_page(page,text_wrapped): 
     clear_bubble_and_text(page-1,text_wrapped) #clear the previous page
     #draw_speech_bubble()
-    start_animate_text_thread(page,text_wrapped) #render the current page
+    animate_text = start_animate_text_thread(page,text_wrapped) #render the current page
+    return animate_text
 
 def run_command(command):
-    command_raw = subprocess.run(["echo testing"], capture_output=True, shell=False, check=True, timeout=60, universal_newlines=True)
-    print(term.clear + str(command_raw.stdout))
+    #print(term.clear + command)
+    #sleep(1)
+    #command is array already?
+    command_raw=[]
+    command_raw.append((subprocess.run(command, capture_output=True)).stdout.decode().strip())
+    print(term.clear)
+    print(command_raw)
     sleep(1)
     return command_raw
 
@@ -221,30 +227,39 @@ def main():
     if args.command:
         user_input = run_command(args.command)
     else:
-        user_input = args.strings
+        user_input = args.input
     text_wrapped = wrap_text(user_input)                            # fetch user inputed strings (all formatted for screensize)
     with term.cbreak(), term.hidden_cursor(), term.fullscreen():    # hide cursor and go fullscreen! 
         start_animation_thread(animation)                           # start the character animation thread
-        next_page(selected_page,text_wrapped)
+        #next_page(selected_page,text_wrapped)
         
-        while True: # enter main loop #dont lag it up
-            if args.timeout:
-                for num_page in range(1,len(text_wrapped)):
+        while True: # enter main loop #dont lag it up ^^
+            if args.timeout and not args.command:
+                run_forever = True #by default disable inside the loop 
+                while run_forever is True:
+                    for num_page in range(0,len(text_wrapped)): # 0 is already shown at start
+                        animate_text = next_page(num_page, text_wrapped)
+                        animate_text.join()
+                        sleep(float(args.timeout))
+                        # WAIT for PREV THREAD FINISHES
                     sleep(float(args.timeout))
-                    next_page(num_page, text_wrapped)
-                    # WAIT for PREV THREAD FINISHES
-                sleep(float(args.timeout))
+                    run_forever = args.loop # DISABLE / enable loop after a single iteration
                 sleep(1)
                 print(term.exit_fullscreen())
                 sys.exit()
             if args.command:
-                while True:
+                run_forever = True
+                while run_forever is True:
                     user_input = run_command(args.command)
                     text_wrapped = wrap_text(user_input)
-                    for page_num in range(len(text_wrapped)):
-                        start_animate_text_thread(page_num, text_wrapped)
-                        sleep(2)
+                    for page_num in range(0,len(text_wrapped)-1):
+                        #start_animate_text_thread(page_num, text_wrapped)
+                        animate_text = next_page(page_num, text_wrapped)
+                        animate_text.join()
+                        sleep(float(args.timeout))
                     sleep(args.repeat)
+                    run_forever = args.loop # DISABLE / enable loop after a single iteration
+                    sys.exit()
             with term.cbreak():
                 val = ''
                 while val.lower() != 'q':
