@@ -31,13 +31,14 @@ parser.add_argument("-f", "--framerate",type=float, default='0.17', help="Show a
 parser.add_argument("-t", "--timeout", help="Automatically progress pages after a number of seconds till end (default: 2)")
 parser.add_argument("-a", "--ascii",type=str, default='axolotl', help="Ascii character folder to select (default: axolotl)")
 parser.add_argument("-c", "--command",type=str, default='', help="On-going command to display output: (eg: fortune)")
+parser.add_argument("--clear",type=float, default='0.0005', help="Speed at which text is cleared from the screen (default: 0.0005)")
 parser.add_argument("-r", "--repeat", type=float,default='5', help="On-going command repeat in seconds: (default: 5)")
 parser.add_argument("-l", "--loop", type=bool,default=False, help="restart instead of ending(default: False)")
 parser.add_argument('input', metavar='"string"', type=str, nargs='+', help='a space seperated, quoted string for each page')
 args = parser.parse_args()
 speed = float(args.speed)
 animation_folder_path = "resources/animated/{}/".format(args.ascii)
-alphabet = " abcdefghijklmnopqrstiuvwxyz "
+alphabet = " #@*!?abcdefghijklmnopqrstiuvwxyz "
 homedir = os.path.expanduser("~")
 
 #print("args.strings=",)
@@ -153,10 +154,10 @@ def draw_speech_bubble(page,text_wrapped):
  
 def clear_bubble_and_text(page,text_wrapped):
     print(term.move_xy(space_for_text + 3,animation_mouth_line) + "  ",end='',flush=True)
-    for y in range(0,len(text_wrapped[page]) + 3):
+    for y in range(0,space_for_text + 3): #range(0,len(text_wrapped[page]) + 3):
         for x in range(0,space_for_text + 2):
             print(term.move_xy(x,y) + " ",end='',flush=True)
-            sleep(speed/2)
+            sleep(args.clear)
  
 
 def clear_text_in_bubble():
@@ -203,17 +204,38 @@ def prev_page(page,text_wrapped):
     start_animate_text_thread(page,text_wrapped) #render the current page
 
 def next_page(page,text_wrapped): 
-    clear_bubble_and_text(page-1,text_wrapped) #clear the previous page
+    #needs to handle 0
+    if page != 0:
+        clear_bubble_and_text(page-1,text_wrapped) #clear the previous page
+    else:
+        clear_bubble_and_text(page,text_wrapped) #clear the previous page
     #draw_speech_bubble()
     animate_text = start_animate_text_thread(page,text_wrapped) #render the current page
     return animate_text
 
-def run_command(command):
+def run_command(input):
     #print(term.clear + command)
     #sleep(1)
     #command is array already?
+    #command is string, split via spaces and reassemble as array
+    if isinstance(command, list):
+        print("your object is a list !")
+    else:
+        command = input.split(" ")
+        print("run_command() command after split is = " + command)
+        print("your object was made into a list !")
+        sleep(1)
     command_raw=[]
-    command_raw.append((subprocess.run(command, capture_output=True)).stdout.decode().strip())
+    command_raw.append((subprocess.run(command, capture_output=True)).stdout.decode())
+    if isinstance(command_raw, list):
+        print("your command_raw object is a list !")
+        print(command_raw)
+        sleep(1)
+    else:
+        temp = command_raw
+        command_raw = []
+        command_raw.append(temp)
+        print("your command_raw object was made into a list !")
     print(term.clear)
     print(command_raw)
     sleep(1)
@@ -231,7 +253,8 @@ def main():
     text_wrapped = wrap_text(user_input)                            # fetch user inputed strings (all formatted for screensize)
     with term.cbreak(), term.hidden_cursor(), term.fullscreen():    # hide cursor and go fullscreen! 
         start_animation_thread(animation)                           # start the character animation thread
-        #next_page(selected_page,text_wrapped)
+        if not args.command:                                        # show first page
+            next_page(selected_page,text_wrapped)
         
         while True: # enter main loop #dont lag it up ^^
             if args.timeout and not args.command:
@@ -248,22 +271,34 @@ def main():
                 print(term.exit_fullscreen())
                 sys.exit()
             if args.command:
+                print("enter command mode" + args.command)
+                sleep(1)
                 run_forever = True
                 while run_forever is True:
-                    user_input = run_command(args.command)
+                    command = args.command
+                    user_input = run_command(command)
+                    print(term.clear)
+                    print("user_input = " + user_input)
                     text_wrapped = wrap_text(user_input)
+                    print('command text_wrapped returned' + text_wrapped)
+                    sleep(1)
                     for page_num in range(0,len(text_wrapped)-1):
                         #start_animate_text_thread(page_num, text_wrapped)
                         animate_text = next_page(page_num, text_wrapped)
-                        animate_text.join()
+                       # animate_text.join()
+                        sleep(1)
                         sleep(float(args.timeout))
                     sleep(args.repeat)
                     run_forever = args.loop # DISABLE / enable loop after a single iteration
-                    sys.exit()
+                sys.exit()
             with term.cbreak():
                 val = ''
                 while val.lower() != 'q':
-                    if selected_page == len(text_wrapped)-1: # if on last page of text
+                    if len(text_wrapped) == 1: # if on last page of text
+                        line_erase(text_max_height + 1)
+                        print(term.move_xy(0,text_max_height + 1) + "[r]estart [q]uit",end='',flush=True)
+
+                    elif selected_page == len(text_wrapped)-1: # if on last page of text
                         line_erase(text_max_height + 1)
                         print(term.move_xy(0,text_max_height + 1) + "[p]rev [r]estart [q]uit",end='',flush=True)
                     elif selected_page == 0: # if on first page of text
@@ -275,8 +310,8 @@ def main():
                     val = term.inkey(timeout=5)
                     if val == 'r':
                         line_erase(text_max_height + 1)
-                        #print(term.move_xy(0,text_max_height + 1) + "restarting...",end='',flush=True)
-                        #sleep(0.5)
+                        print(term.move_xy(0,text_max_height + 1) + "restart...",end='',flush=True)
+                        sleep(0.5)
                         selected_page = 0
                         next_page(selected_page,text_wrapped)
                     elif val == 'n':
@@ -285,7 +320,7 @@ def main():
                         #sleep(0.5)
                         if selected_page == len(text_wrapped)-1:
                             line_erase(text_max_height + 1)
-                            print(term.move_xy(0,text_max_height + 1) + "At End..",end='',flush=True)
+                            print(term.move_xy(0,text_max_height + 1) + "last page..",end='',flush=True)
                             sleep(0.5)
                         else:
                             selected_page = selected_page + 1
@@ -293,7 +328,7 @@ def main():
                     elif val == 'p':
                         if selected_page == 0:
                             line_erase(text_max_height + 1)
-                            print(term.move_xy(0,text_max_height + 1) + "At Beginning...",end='',flush=True)
+                            print(term.move_xy(0,text_max_height + 1) + "first page..",end='',flush=True)
                             sleep(0.5)
                         else:
                             selected_page = selected_page - 1
