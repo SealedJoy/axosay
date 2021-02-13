@@ -30,7 +30,7 @@ parser.add_argument("-s", "--speed",type=float, default='0.005', help="Speed at 
 parser.add_argument("-f", "--framerate",type=float, default='0.17', help="Show a frame every ... seconds (Default: 0.17)")
 parser.add_argument("-t", "--timeout", help="Automatically progress pages after a number of seconds till end (default: 2)")
 parser.add_argument("-a", "--ascii",type=str, default='axolotl', help="Ascii character folder to select (default: axolotl)")
-parser.add_argument("-c", "--command",type=str, default='', help="On-going command to display output: (eg: fortune)")
+parser.add_argument("-c", "--command",type=str, help="On-going command to display output: (eg: fortune)")
 parser.add_argument("--clear",type=float, default='0.0005', help="Speed at which text is cleared from the screen (default: 0.0005)")
 parser.add_argument("-r", "--repeat", type=float,default='5', help="On-going command repeat in seconds: (default: 5)")
 parser.add_argument("-l", "--loop", type=bool,default=False, help="restart instead of ending(default: False)")
@@ -214,31 +214,29 @@ def next_page(page,text_wrapped):
     return animate_text
 
 def run_command(input):
-    #print(term.clear + command)
-    #sleep(1)
+#    print(term.clear + "input to runcommand= " + input)
+#    sleep(1)
     #command is array already?
     #command is string, split via spaces and reassemble as array
-    if isinstance(command, list):
-        print("your object is a list !")
-    else:
+    if not isinstance(input, list):
+     #   print("trying to make object into a list !")
         command = input.split(" ")
-        print("run_command() command after split is = " + command)
-        print("your object was made into a list !")
-        sleep(1)
+     #   print("run_command() command after split is = " + str(command))
+     #   sleep(1)
     command_raw=[]
     command_raw.append((subprocess.run(command, capture_output=True)).stdout.decode())
-    if isinstance(command_raw, list):
-        print("your command_raw object is a list !")
-        print(command_raw)
-        sleep(1)
-    else:
-        temp = command_raw
-        command_raw = []
-        command_raw.append(temp)
-        print("your command_raw object was made into a list !")
-    print(term.clear)
-    print(command_raw)
-    sleep(1)
+#    if isinstance(command_raw, list):
+#        print("your command_raw object is a list !")
+#        print(command_raw)
+#        sleep(1)
+#    else:
+#        temp = command_raw
+#        command_raw = []
+#        command_raw.append(temp)
+#        print("your command_raw object was made into a list !")
+#    print(term.clear)
+#    print(command_raw)
+#    sleep(1)
     return command_raw
 
 def main():
@@ -271,27 +269,30 @@ def main():
                 print(term.exit_fullscreen())
                 sys.exit()
             if args.command:
-                print("enter command mode" + args.command)
-                sleep(1)
+               # print("enter command mode" + args.command)
+               # sleep(1)
                 run_forever = True
                 while run_forever is True:
-                    command = args.command
-                    user_input = run_command(command)
-                    print(term.clear)
-                    print("user_input = " + user_input)
-                    text_wrapped = wrap_text(user_input)
-                    print('command text_wrapped returned' + text_wrapped)
-                    sleep(1)
-                    for page_num in range(0,len(text_wrapped)-1):
+                    for page_num in range(0,len(text_wrapped)):
                         #start_animate_text_thread(page_num, text_wrapped)
                         animate_text = next_page(page_num, text_wrapped)
-                       # animate_text.join()
-                        sleep(1)
+                        animate_text.join()
+                     #   sleep(1)
+                        if not args.timeout:
+                            args.timeout = 2
                         sleep(float(args.timeout))
+
+                    command = args.command
+                    user_input = run_command(command)
+                  #  print(term.clear)
+                  #  print("user_input = " + user_input)
+                    text_wrapped = wrap_text(user_input)
+                  #  print('command text_wrapped returned' + text_wrapped)
+                    sleep(1)
                     sleep(args.repeat)
                     run_forever = args.loop # DISABLE / enable loop after a single iteration
                 sys.exit()
-            with term.cbreak():
+            with term.cbreak(): #enter interactive mode
                 val = ''
                 while val.lower() != 'q':
                     if len(text_wrapped) == 1: # if on last page of text
