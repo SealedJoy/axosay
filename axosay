@@ -31,14 +31,14 @@ parser.add_argument("-f", "--framerate",type=float, default='0.17', help="Show a
 parser.add_argument("-t", "--timeout", help="Automatically progress pages after a number of seconds till end (default: 2)")
 parser.add_argument("-a", "--ascii",type=str, default='axolotl', help="Ascii character folder to select (default: axolotl)")
 parser.add_argument("-c", "--command",type=str, help="On-going command to display output: (eg: fortune)")
-parser.add_argument("--clear",type=float, default='0.0005', help="Speed at which text is cleared from the screen (default: 0.0005)")
-parser.add_argument("-r", "--repeat", type=float,default='5', help="On-going command repeat in seconds: (default: 5)")
+parser.add_argument("--clear",type=float, default='0.0005', help="Speed at which text is cleared from the screen (default: 0.0001)")
+parser.add_argument("-r", "--repeat", type=float,default='3', help="On-going command repeat in seconds: (default: 5)")
 parser.add_argument("-l", "--loop", type=bool,default=False, help="restart instead of ending(default: False)")
 parser.add_argument('input', metavar='"string"', type=str, nargs='+', help='a space seperated, quoted string for each page')
 args = parser.parse_args()
 speed = float(args.speed)
 animation_folder_path = "resources/animated/{}/".format(args.ascii)
-alphabet = " #@*!?abcdefghijklmnopqrstiuvwxyz "
+alphabet = " #@*!?$&abcdefghijklmnopqrstiuvwxyz "
 homedir = os.path.expanduser("~")
 
 #print("args.strings=",)
@@ -93,7 +93,7 @@ def wrap_text(user_input): #recieve args.strings list
     wrapped_lines=[]
     page_num = 0
     for dirty_string in user_input: 
-        cleaned_strings.append(dirty_string.replace("\n", " ").replace("\t", "").replace("  ", " ")) 
+        cleaned_strings.append(dirty_string.replace("\n", " ").replace("\t", "").replace("  ", " ").replace("   ", " ")) 
     for string_num in range(0,len(cleaned_strings)): #pad all text on first load
         wrapped_lines.append(textwrap.wrap(cleaned_strings[string_num],width=space_for_text -1, initial_indent='',subsequent_indent='', replace_whitespace=True, expand_tabs=True, tabsize=1))
     line_num = 0
@@ -102,10 +102,10 @@ def wrap_text(user_input): #recieve args.strings list
         page_continued=[]
         line_num = 0
         while len(wrapped_lines[page_num]) >= text_max_height: # if too many lines, insert a new page
-                page_continued.insert(0,wrapped_lines[page_num].pop())
+            page_continued.insert(0,wrapped_lines[page_num].pop())
         if page_continued:
-                temp_page_num = page_num + 1
-                wrapped_lines.insert(temp_page_num, page_continued)
+            temp_page_num = page_num + 1
+            wrapped_lines.insert(temp_page_num, page_continued)
         else: # if page_continued empty continue to next page 
             page_num = page_num +1
     return wrapped_lines 
@@ -124,41 +124,47 @@ def randomdelay():
     return delaytime
 
 def draw_speech_bubble(page,text_wrapped):
-    # speech arrows
-    if len(text_wrapped[page]) > '1': #if textwrap not single line
-        print(term.move_xy(space_for_text + 3,animation_mouth_line) + "--",end='',flush=True)
-            #right side vertical
-        for y in range(1,text_end_line + 2):
-            print(term.move_xy(space_for_text + 2,y) + bubble_char,end='',flush=True)
-            #bottom and top horizontal
-        for x in range(space_for_text + 1, 1, -1):
-            print(term.move_xy(x,0) + bubble_char,end='',flush=True)
-            print(term.move_xy(x,text_end_line + 2) + bubble_char,end='',flush=True)
-            sleep(0.01)
-            #left side vertical
-        for y in range(1, text_end_line + 2):
-            print(term.move_xy(0,y) + bubble_char,end='',flush=True)
-    else: # textwrap / input is single line!
-        print(term.move_xy(space_for_text + 1,animation_mouth_line) + "-----",end='',flush=True)
-            #right side vertical
-        for y in range(1,text_end_line + 2):
-            print(term.move_xy(single_line_end + 4,y) + bubble_char,end='',flush=True)
-            #bottom and top horizontal
-        for x in range(single_line_end + 1, 0, -1):
-            print(term.move_xy(x,0) + bubble_char,end='',flush=True)
-            print(term.move_xy(x,text_end_line + 2) + bubble_char,end='',flush=True)
-            sleep(0.01)
-            #left side vertical
-        for y in range(1, text_end_line + 2):
-            print(term.move_xy(0,y) + bubble_char,end='',flush=True)
+       # print(term.clear + "drawing bubble!")
+       # sleep(1)
+        print(term.move_xy(space_for_text + 3,animation_mouth_line -1) + "\\" ,end='',flush=True)
+        
+        #right side vertical
+        if len(text_wrapped[page]) == 1:
+            side_char_r = ")"
+        else:
+            side_char_r = "|"
+        for y in range(1,len(text_wrapped[page]) + 1): #right side
+            print(term.move_xy(space_for_text + 2,y) + side_char_r,end='',flush=True)
+        #bottom and top horizontal
+        for x in range(space_for_text + 1, 0, -1):
+          #  print(term.move_xy(x,0) + term.style("underline", "                    " ),end='',flush=True)
+            print(term.move_xy(x,0) + "-",end='',flush=True)
+            print(term.move_xy(x,len(text_wrapped[page]) + 1) + "-",end='',flush=True)
+            sleep(args.speed)
+        #left side vertical
+        if len(text_wrapped[page]) == 1:
+            side_char_l = "("
+        else:
+            side_char_l = "|"
+        for y in range(1, len(text_wrapped[page]) + 1):
+            print(term.move_xy(0,y) + side_char_l,end='',flush=True)
+
  
 def clear_bubble_and_text(page,text_wrapped):
     print(term.move_xy(space_for_text + 3,animation_mouth_line) + "  ",end='',flush=True)
-    for y in range(0,space_for_text + 3): #range(0,len(text_wrapped[page]) + 3):
-        for x in range(0,space_for_text + 2):
+    for y in range(0,len(text_wrapped[page]) + 4): #range(0,space_for_text + 3): #
+        for x in range(0,space_for_text + 4):
             print(term.move_xy(x,y) + " ",end='',flush=True)
             sleep(args.clear)
+   # prev_cleared = len(text_wrapped[page]) 
  
+ 
+def clear_entire():
+    print(term.move_xy(space_for_text + 3,animation_mouth_line) + "  ",end='',flush=True)
+    for y in range(0,text_max_height + 3): 
+        for x in range(0,space_for_text + 4):
+            print(term.move_xy(x,y) + " ",end='',flush=True)
+            sleep(args.clear)
 
 def clear_text_in_bubble():
     for y in range(text_max_height,0,-1):
@@ -199,8 +205,11 @@ def start_animate_text_thread(page,text_wrapped):
     return animate_text
 
 def prev_page(page,text_wrapped): 
-    clear_bubble_and_text(page+1,text_wrapped) #clear the last page
-    #draw_speech_bubble()
+    if page != 0:
+        clear_bubble_and_text(page+1,text_wrapped) #clear the last page
+    else:
+        clear_entire()
+        draw_speech_bubble(page,text_wrapped)
     start_animate_text_thread(page,text_wrapped) #render the current page
 
 def next_page(page,text_wrapped): 
@@ -208,8 +217,8 @@ def next_page(page,text_wrapped):
     if page != 0:
         clear_bubble_and_text(page-1,text_wrapped) #clear the previous page
     else:
-        clear_bubble_and_text(page,text_wrapped) #clear the previous page
-    #draw_speech_bubble()
+        clear_entire() #clear the previous page
+    draw_speech_bubble(page,text_wrapped)
     animate_text = start_animate_text_thread(page,text_wrapped) #render the current page
     return animate_text
 
@@ -282,13 +291,12 @@ def main():
                             args.timeout = 2
                         sleep(float(args.timeout))
 
-                    command = args.command
-                    user_input = run_command(command)
+                    user_input = run_command(args.command)
                   #  print(term.clear)
                   #  print("user_input = " + user_input)
                     text_wrapped = wrap_text(user_input)
                   #  print('command text_wrapped returned' + text_wrapped)
-                    sleep(1)
+                    #sleep(1)
                     sleep(args.repeat)
                     run_forever = args.loop # DISABLE / enable loop after a single iteration
                 sys.exit()
