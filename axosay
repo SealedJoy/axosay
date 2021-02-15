@@ -17,14 +17,11 @@ animation_mouth_line = 4
 frame_rate = 0.17
 h_padding_int = 2
 v_padding_int = 1
-art_max_width = 19 #edge to edge of ascii size
+art_max_width = 18 #edge to edge of ascii size
 art_max_height = 12
-text_max_height = term.height - 2
 # # # END USER SETTINGS # # #
 
 
-space_for_text = (term.width - art_max_width) - h_padding_int*2
-space_for_art = (term.width - space_for_text) - h_padding_int*2
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--speed",type=float, default='0.005', help="Speed at which text is printed to screen by axolotl. (Default: 0.005)")
 parser.add_argument("-f", "--framerate",type=float, default='0.17', help="Show a frame every ... seconds (Default: 0.17)")
@@ -47,26 +44,44 @@ homedir = os.path.expanduser("~")
 #print(args.strings)
 #sleep(1)
 
-blank_text_line = ''
-for space in range(0,space_for_text):
-    blank_text_line = blank_text_line + ' '
-blank_space = ''
-for space in range(0,term.width):
-    blank_space = blank_space + ' '
+#blank_text_line = ''
+#for space in range(0,space_for_text):
+#    blank_text_line = blank_text_line + ' '
+#blank_space = ''
+#for space in range(0,term.width):
+#    blank_space = blank_space + ' '
 h_padding = ''
 for space in range(0,h_padding_int):
     h_padding = h_padding + ' '
 v_padding = ''
 for space in range(v_padding_int):
     v_padding = v_padding + ' '
+text_max_height = term.height - 2
+space_for_text = (term.width - art_max_width) - h_padding_int*2
+space_for_art = (term.width - space_for_text) - h_padding_int*2
 
-def on_resize():
+
+def on_resize(*args): #globals?
+    global text_max_height
+    global space_for_text
+    global space_for_art
+    global h_padding_int
+    text_max_height = term.height - 2
     space_for_text = (term.width - art_max_width) - h_padding_int*2
     space_for_art = (term.width - space_for_text) - h_padding_int*2
-    print(term.clear)
+    sleep(0.001)
+    clear_entire()
+    term.clear
+    #kill threads
+    # END RENDER THREADS here or from parent func?
+    #wrapped_text = wrap_text(user_input) 
+    #space_for_text = (term.width - art_max_width) - h_padding_int*2
+    #space_for_art = (term.width - space_for_text) - h_padding_int*2
+    #print(term.clear)
     #kill threads here
     #start_animation_thread(page,text_wrapped)
     #start_animate_text_thread(page,text_wrapped)
+    #return wrapped_text
 
 def check_term():
     if term.height < art_max_height + 2:
@@ -116,6 +131,7 @@ def get_file_paths():
     
 def line_erase(line):
     #txt_erase = term.move_y(line) + ' '
+    blank_space=' '
     print(term.move_xy(0, line) + blank_space,end='',flush=True)
 
 def randomdelay():
@@ -223,29 +239,11 @@ def next_page(page,text_wrapped):
     return animate_text
 
 def run_command(input):
-#    print(term.clear + "input to runcommand= " + input)
-#    sleep(1)
-    #command is array already?
     #command is string, split via spaces and reassemble as array
     if not isinstance(input, list):
-     #   print("trying to make object into a list !")
         command = input.split(" ")
-     #   print("run_command() command after split is = " + str(command))
-     #   sleep(1)
     command_raw=[]
     command_raw.append((subprocess.run(command, capture_output=True)).stdout.decode())
-#    if isinstance(command_raw, list):
-#        print("your command_raw object is a list !")
-#        print(command_raw)
-#        sleep(1)
-#    else:
-#        temp = command_raw
-#        command_raw = []
-#        command_raw.append(temp)
-#        print("your command_raw object was made into a list !")
-#    print(term.clear)
-#    print(command_raw)
-#    sleep(1)
     return command_raw
 
 def main():
@@ -257,6 +255,7 @@ def main():
         user_input = run_command(args.command)
     else:
         user_input = args.input
+    #text_wrapped = on_resize(user_input)                            # fetch user inputed strings (all formatted for screensize)
     text_wrapped = wrap_text(user_input)                            # fetch user inputed strings (all formatted for screensize)
     with term.cbreak(), term.hidden_cursor(), term.fullscreen():    # hide cursor and go fullscreen! 
         start_animation_thread(animation)                           # start the character animation thread
@@ -349,16 +348,22 @@ def main():
 
 if __name__ == "__main__":
     try:
+        #on_resize()
         check_term()
         main()
     #except Exception as e:
      #   print("Oops!", e.__class__, "occurred.")
     except (KeyboardInterrupt, SystemExit):
-        cleanup_stop_thread()
+        #cleanup_stop_thread()
         print(term.exit_fullscreen())
+        sleep(1)
+        print('Exiting...')
+        sleep(1)
         sys.exit()
-    finally:
-        #animate.raise_exception()
-        print(term.exit_fullscreen())
-        sys.exit()
+  #  finally:
+  #      print('finally')
+  #      sleep(1)
+  #      #animate.raise_exception()
+  #      print(term.exit_fullscreen())
+  #      sys.exit()
             
