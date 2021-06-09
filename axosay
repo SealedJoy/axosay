@@ -61,18 +61,97 @@ space_for_text = (term.width - art_max_width) - h_padding_int*2
 space_for_art = (term.width - space_for_text) - h_padding_int*2
 
 
+
+
+### testing
+
+class Job(threading.Thread):
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+        # The shutdown_flag is a threading.Event object that
+        # indicates whether the thread should be terminated.
+        self.shutdown_flag = threading.Event()
+
+        # ... Other thread setup code here ...
+
+    def run(self,page,text_wrapped):
+        print('Thread #%s started' % self.ident)
+
+        while not self.shutdown_flag.is_set():
+            # ... Job code here ...
+            #time.sleep(0.5)
+            render_text(page,text_wrapped)
+
+        # ... Clean shutdown code here ...
+        print('Thread #%s stopped' % self.ident)
+
+
+class ServiceExit(Exception):
+    """
+    Custom exception which is used to trigger the clean exit
+    of all running threads and the main program.
+    """
+    pass
+
+
+def service_shutdown(signum, frame):
+    print('Caught signal %d' % signum)
+    raise ServiceExit
+
+
+#def main():
+
+#    # Register the signal handlers
+#    signal.signal(signal.SIGTERM, service_shutdown)
+#    signal.signal(signal.SIGINT, service_shutdown)
+#
+#    print('Starting main program')
+#
+#    # Start the job threads
+#    try:
+#        j1 = Job(page,text_wrapped)
+#        j2 = Job()
+#        j1.start()
+#        j2.start()
+#
+#        # Keep the main thread running, otherwise signals are ignored.
+#        while True:
+#            sleep(0.5)
+#
+#    except ServiceExit:
+#        # Terminate the running threads.
+#        # Set the shutdown flag on each thread to trigger a clean shutdown of each thread.
+#        j1.shutdown_flag.set()
+#        j2.shutdown_flag.set()
+#        # Wait for the threads to close...
+#        j1.join()
+#        j2.join()
+#
+#    print('Exiting main program')
+
+
+#if __name__ == '__main__':
+#    main()
+
+
+### end testing
+
 def on_resize(*args): #globals?
     global text_max_height
     global space_for_text
     global space_for_art
     global h_padding_int
+    global text_wrapped
     text_max_height = term.height - 2
     space_for_text = (term.width - art_max_width) - h_padding_int*2
     space_for_art = (term.width - space_for_text) - h_padding_int*2
     sleep(0.001)
     clear_entire()
-    term.clear
+    print(term.clear)
     #kill threads
+#    text_wrapped = text_wrap(args.input) 
     # END RENDER THREADS here or from parent func?
     #wrapped_text = wrap_text(user_input) 
     #space_for_text = (term.width - art_max_width) - h_padding_int*2
@@ -180,7 +259,7 @@ def clear_entire():
     for y in range(0,text_max_height + 3): 
         for x in range(0,space_for_text + 4):
             print(term.move_xy(x,y) + " ",end='',flush=True)
-            sleep(args.clear)
+            #sleep(args.clear)
 
 def clear_text_in_bubble():
     for y in range(text_max_height,0,-1):
@@ -255,7 +334,6 @@ def main():
         user_input = run_command(args.command)
     else:
         user_input = args.input
-    #text_wrapped = on_resize(user_input)                            # fetch user inputed strings (all formatted for screensize)
     text_wrapped = wrap_text(user_input)                            # fetch user inputed strings (all formatted for screensize)
     with term.cbreak(), term.hidden_cursor(), term.fullscreen():    # hide cursor and go fullscreen! 
         start_animation_thread(animation)                           # start the character animation thread
@@ -356,9 +434,6 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         #cleanup_stop_thread()
         print(term.exit_fullscreen())
-        sleep(1)
-        print('Exiting...')
-        sleep(1)
         sys.exit()
   #  finally:
   #      print('finally')
