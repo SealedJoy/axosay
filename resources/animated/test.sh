@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
+dir=./octelpus/*
+if [ -z $1 ] ; then
+	framerate=0.2
+else
+	framerate=$1
+fi
 while true; do
-clear ; cat axolotl/axolotl1 ; sleep 0.3 
-clear ; cat axolotl/axolotl2 ; sleep 0.3 
-clear ; cat axolotl/axolotl3 ; sleep 0.3 
-clear ; cat axolotl/axolotl4 ; sleep 0.3 
+	for file in $dir ;do
+		printf "\033c"
+		echo $file
+		cat $file 
+		sleep $framerate
+	done
 done
+
