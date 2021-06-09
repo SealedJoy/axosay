@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-dir=./octelpus/*
+dir=./octelpus/octelpus*
 if [ -z $1 ] ; then
 	framerate=0.2
 else

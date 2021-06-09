@@ -1,0 +1,3 @@
+Add your own ascii character by creating a folder with a series of frames (numerically named text based files)
+
+You can then run with the -a flag and enter the name of corrisponding folder
